@@ -1,0 +1,91 @@
+# Android Perseverance Engine Test Environment Pipeline
+# Running this will run a full End-to-End test of Perseverence Repo
+# Component Governance, Instrumented Tests, Unit Tests, Jacoco Output
+
+trigger:
+  - none
+
+pool:
+  vmImage: 'macos-latest'
+
+steps:
+  - checkout: self
+    submodules: true
+
+  - task: ComponentGovernanceComponentDetection@0
+    inputs:
+      scanType: 'Register'
+      verbosity: 'Verbose'
+      alertWarningLevel: 'Low'
+
+  - task: Gradle@2
+    displayName: 'gradlew clean'
+    inputs:
+      gradleWrapperFile: 'ADDInstrumentedTest2021/gradlew'
+      workingDirectory: ADDInstrumentedTest2021
+      options: ''
+      tasks: clean
+
+  - task: Gradle@2
+    displayName: 'Stop daemons'
+    inputs:
+      gradleWrapperFile: 'ADDInstrumentedTest2021/gradlew'
+      workingDirectory: ADDInstrumentedTest2021
+      tasks: '--stop --info'
+      publishJUnitResults: false
+
+  - task: Gradle@2
+    displayName: 'Assemble UnitTest Jacoco'
+    continueOnError: true
+    inputs:
+      gradleWrapperFile: 'ADDInstrumentedTest2021/gradlew'
+      workingDirectory: ADDInstrumentedTest2021
+      options: ''
+      tasks: 'assembleDebug testDebugUnitTest'
+      publishJUnitResults: true
+      testResultsFiles: '**/TEST-*.xml'
+      javaHomeOption: 'JDKVersion'
+      gradleOptions: '-Xmx3072m'
+      sonarQubeRunAnalysis: false
+
+  - task: CacheBeta@0
+    displayName: 'Caching System Images for AVD'
+    inputs:
+      key: 'AVD_IMAGES_PIXEL_28'
+      path: '$(ANDROID_HOME)/system-images'
+      cacheHitVar: 'AVD_IMAGES_RESTORED'
+    continueOnError: true
+    condition: succeededOrFailed()
+
+  - bash: |
+      echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --install 'system-images;android-28;google_apis;x86'
+    displayName: 'Download and install emulator image'
+    condition: ne(variables.AVD_IMAGES_RESTORED, 'true')
+
+  - bash: |
+      echo "no" | $ANDROID_HOME/tools/bin/avdmanager create avd -n android_emulator -k 'system-images;android-28;google_apis;x86' -d 17 --force
+      echo "Emulator created successfully $(ANDROID_HOME/emulator/emulator -list-avds), launching it"
+      nohup $ANDROID_HOME/emulator/emulator -avd android_emulator -skin 1080x1920 -no-snapshot -no-audio -no-boot-anim -accel auto -gpu auto -qemu -lcd-density 420 > /dev/null 2>&1 &
+      $ANDROID_HOME/platform-tools/adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d '\r') ]]; do sleep 1; done'
+      $ANDROID_HOME/platform-tools/adb devices
+      echo "Emulator started"
+    displayName: 'Create and start emulator'
+
+  - bash: |
+      ./ADDInstrumentedTest2021/gradlew -p ./ADDInstrumentedTest2021/ connectedAndroidTest --stacktrace -Penable_automation_timeout=$(SYSTEM.ENABLETIMEOUT)
+      ./ADDInstrumentedTest2021/gradlew -p ./ADDInstrumentedTest2021/ --stop
+    displayName: 'Run Instrumented Tests'
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testResultsFiles: '**/TEST-*.xml'
+      failTaskOnFailedTests: false
+      testRunTitle: 'Test results'
+
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: 'JaCoCo'
+      reportDirectory: build/reports/jacoco/jacocoRootReport/html
+      summaryFileLocation: build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml

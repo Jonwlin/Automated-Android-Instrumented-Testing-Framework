@@ -1,0 +1,163 @@
+pool:
+  name: Azure Pipelines
+  demands: java
+
+variables:
+  System.AssignedTo: 'user@emaildomain.com'
+
+steps:
+- task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
+  displayName: 'Component Detection'
+
+- task: Gradle@2
+  displayName: 'gradlew clean'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: '--build-cache'
+    tasks: clean
+
+- task: Gradle@2
+  displayName: 'gradlew assembleDebug'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: ''
+    tasks: assembleDebug
+    publishJUnitResults: false
+
+- task: Gradle@2
+  displayName: 'gradlew assembleDebugAndroidTest - Batch 1'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: ''
+    tasks: assembleDebugAndroidTest
+    publishJUnitResults: false
+
+- task: laurensknoll.google-cloud-sdk-tasks.google-cloud-sdk-installer.GoogleCloudSdkInstaller@0
+  displayName: 'Install Google Cloud SDK 306.0.0'
+
+- task: DownloadSecureFile@1
+  displayName: 'Download secure file'
+  inputs:
+    secureFile: '8baed423-b738-48f0-846e-43d3128f71e1'
+
+- script: |
+   gcloud auth activate-service-account \
+   service-account@project.iam-test-account \
+   --key-file=$(service_account_key.secureFilePath)
+  displayName: 'Authorize Gcloud Service Account'
+
+- script: |
+   gcloud firebase test android run \
+   --type instrumentation \
+   --project <team>-test-framework \
+   --app ADDInstrumentedTest2021/app/build/outputs/apk/debug/app-debug.apk \
+   --test ADDInstrumentedTest2021/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+   --timeout 45m \
+   --use-orchestrator \
+   --directories-to-pull /sdcard,/data/local/tmp \
+   --device model=x1q,version=29,locale=en_US,orientation=portrait \
+   >out 2>&1 
+  displayName: 'Run Gcloud Firebase Android Tests - Batch 1'
+  continueOnError: true
+
+- task: PythonScript@0
+  displayName: 'Extract GCloud Storage Bucket - Batch 1'
+  inputs:
+    scriptSource: inline
+    script: |
+     import re
+     
+     pattern = re.compile("test-lab-.*-.*\/\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\..*_.*\/", re.MULTILINE)
+     
+     with open("out") as f:
+         BucketDir = re.search(pattern, f.read()).group(0)
+     
+     print("BucketDir = " + BucketDir)
+     print("##vso[task.setvariable variable=BucketDir]" + BucketDir)
+  continueOnError: true
+
+- task: laurensknoll.google-cloud-sdk-tasks.gsutil-runner.GsutilRunner@0
+  displayName: 'Fetch Test Results/Attachments - Batch 1'
+  inputs:
+    command: '-m cp -r "gs://$(BucketDir)x1q-29-en_US-portrait/" "."'
+  continueOnError: true
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results to ADO - Batch 1'
+  inputs:
+    testResultsFiles: '**/test_result_1.xml'
+  continueOnError: true
+
+- task: PythonScript@0
+  displayName: 'Create Bugs on Test Failures - Batch 1'
+  inputs:
+    scriptPath: AzureDevops/TestFrameworkCreateBugs.py
+    arguments: '$(System.AccessToken) $(System.AssignedTo) $(Build.SourceVersion) $(Build.BuildUri)'
+  continueOnError: true
+
+- task: Gradle@2
+  displayName: 'gradlew assembleDebugAndroidTest - Batch 2'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: ''
+    tasks: assembleDebugAndroidTest
+    publishJUnitResults: false
+  enabled: false
+
+- script: |
+   gcloud firebase test android run \
+   --type instrumentation \
+   --project <team>-test-framework \
+   --app ADDInstrumentedTest2021/app/build/outputs/apk/debug/app-debug.apk \
+   --test ADDInstrumentedTest2021/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+   --timeout 45m \
+   --use-orchestrator \
+   --directories-to-pull /sdcard,/data/local/tmp \
+   --device model=x1q,version=29,locale=en_US,orientation=portrait \
+   >out 2>&1 
+  displayName: 'gcloud firebase test android run - Batch 2'
+  enabled: false
+  continueOnError: true
+
+- task: PythonScript@0
+  displayName: 'Extract GCloud Storage Bucket - Batch 2'
+  inputs:
+    scriptSource: inline
+    script: |
+     import re
+     
+     pattern = re.compile("test-lab-.*-.*\/\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\..*_.*\/", re.MULTILINE)
+     
+     with open("out") as f:
+         BucketDir = re.search(pattern, f.read()).group(0)
+     
+     print("BucketDir = " + BucketDir)
+     print("##vso[task.setvariable variable=BucketDir]" + BucketDir)
+  enabled: false
+  continueOnError: true
+
+- task: laurensknoll.google-cloud-sdk-tasks.gsutil-runner.GsutilRunner@0
+  displayName: 'Fetch Test Results/Attachments - Batch 2'
+  inputs:
+    command: '-m cp -r "gs://$(BucketDir)x1q-29-en_US-portrait/" "."'
+  enabled: false
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results to ADO - Batch 2'
+  inputs:
+    testResultsFiles: '**/test_result_1.xml'
+  enabled: false
+  continueOnError: true
+
+- task: PythonScript@0
+  displayName: 'Create Bugs on Test Failures - Batch 2'
+  inputs:
+    scriptPath: AzureDevops/TestFrameworkCreateBugs.py
+    arguments: '$(System.AccessToken) $(System.AssignedTo) $(Build.SourceVersion) $(Build.BuildUri)'
+  enabled: false
+  continueOnError: true
+

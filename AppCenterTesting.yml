@@ -1,0 +1,55 @@
+pool:
+  name: Azure Pipelines
+  demands: java
+
+steps:
+- task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
+  displayName: 'Component Detection'
+
+- task: Gradle@2
+  displayName: 'gradlew clean'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: '--build-cache'
+    tasks: clean
+
+- task: Gradle@2
+  displayName: 'gradlew assembleDebug'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: ''
+    tasks: assembleDebug
+    publishJUnitResults: false
+
+- task: Gradle@2
+  displayName: 'gradlew assembleDebugAndroidTest'
+  inputs:
+    gradleWrapperFile: '$(Parameters.wrapperScript)'
+    workingDirectory: ADDInstrumentedTest2021
+    options: ''
+    tasks: assembleDebugAndroidTest
+    publishJUnitResults: false
+
+- task: NodeTool@0
+  displayName: 'Use Node 10.24.1'
+  inputs:
+    versionSpec: 10.24.1
+
+- script: 'npm install -g appcenter-cli'
+  displayName: 'Command Line Script'
+
+- task: AppCenterTest@1
+  displayName: 'Test with Visual Studio App Center'
+  inputs:
+    appFile: 'ADDInstrumentedTest2021/app/build/outputs/apk/debug/app-debug.apk'
+    frameworkOption: espresso
+    espressoBuildDirectory: ADDInstrumentedTest2021/app/build/outputs/apk/androidTest/debug/
+    serverEndpoint: 'AppCenter-Jonathan-UserToken'
+    appSlug: 'jonalin/<Name of Project>'
+    devices: 'jonalin/s20-test-espresso'
+    localeOption: user
+    userDefinedLocale: 'en_US'
+  condition: succeededOrFailed()
+
