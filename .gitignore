@@ -1,6 +1,6 @@
 
-# Created by https://www.toptal.com/developers/gitignore/api/android,kotlin,androidstudio,python,windows,macos,linux
-# Edit at https://www.toptal.com/developers/gitignore?templates=android,kotlin,androidstudio,python,windows,macos,linux
+# Created by https://www.toptal.com/developers/gitignore/api/windows,android,androidstudio,macos,python,java,kotlin,gradle,maven
+# Edit at https://www.toptal.com/developers/gitignore?templates=windows,android,androidstudio,macos,python,java,kotlin,gradle,maven
 
 ### Android ###
 # Built application files
@@ -100,7 +100,7 @@ output.json
 # Replacement of .externalNativeBuild directories introduced
 # with Android Studio 3.5.
 
-### Kotlin ###
+### Java ###
 # Compiled class file
 
 # Log file
@@ -123,20 +123,18 @@ output.json
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
-### Linux ###
-*~
+### Kotlin ###
+# Compiled class file
 
-# temporary files which can be created if a process still has a handle open of a deleted file
-.fuse_hidden*
+# Log file
 
-# KDE directory preferences
-.directory
+# BlueJ files
 
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
+# Mobile Tools for Java (J2ME)
 
-# .nfs files are created when an open file is removed but is still being accessed
-.nfs*
+# Package Files #
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 
 ### macOS ###
 # General
@@ -166,6 +164,26 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# https://github.com/takari/maven-wrapper#usage-without-binary-jar
+.mvn/wrapper/maven-wrapper.jar
+
+### Maven Patch ###
+# Eclipse m2e generated files
+# Eclipse Core
+.project
+# JDT-specific (Eclipse Java Development Tools)
+.classpath
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -241,7 +259,6 @@ docs/_build/
 
 # PyBuilder
 .pybuilder/
-target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -331,6 +348,28 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+### Gradle ###
+.gradle
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
+# gradle/wrapper/gradle-wrapper.properties
+
+### Gradle Patch ###
+**/build/
+
+# Eclipse Gradle plugin generated files
+# Eclipse Core
+# JDT-specific (Eclipse Java Development Tools)
+
 ### AndroidStudio ###
 # Covers files to be ignored for android development using Android Studio.
 
@@ -343,7 +382,6 @@ $RECYCLE.BIN/
 # Generated files
 
 # Gradle files
-.gradle
 
 # Signing files
 .signing/
@@ -361,6 +399,7 @@ $RECYCLE.BIN/
 /*/*/build
 /*/*/production
 *.ipr
+*~
 *.swp
 
 # Keystore files
@@ -403,8 +442,6 @@ obj/
 .DS_Store?
 
 # Legacy Eclipse project files
-.classpath
-.project
 .cproject
 .settings/
 
@@ -435,4 +472,4 @@ fabric.properties
 
 !/gradle/wrapper/gradle-wrapper.jar
 
-# End of https://www.toptal.com/developers/gitignore/api/android,kotlin,androidstudio,python,windows,macos,linux
+# End of https://www.toptal.com/developers/gitignore/api/windows,android,androidstudio,macos,python,java,kotlin,gradle,maven
